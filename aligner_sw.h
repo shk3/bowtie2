@@ -83,6 +83,7 @@
 #include "dp_framer.h"
 #include "aligner_swsse.h"
 #include "aligner_bt.h"
+#include "stree.h"
 
 #define QUAL2(d, f) sc_->mm((int)(*rd_)[rdi_ + d], \
 							(int)  rf_ [rfi_ + f], \
@@ -205,6 +206,10 @@ class SwAligner {
 public:
 
 	explicit SwAligner(std::ostream *dpLog, bool firstRead = true) :
+		streeFw_(),
+		streeRc_(),
+		mems_(DP_CAT),
+		cols2fixup_(DP_CAT),
 		sseU8fw_(DP_CAT),
 		sseU8rc_(DP_CAT),
 		sseI16fw_(DP_CAT),
@@ -598,6 +603,11 @@ protected:
 	const Scoring      *sc_;     // penalties for edit types
 	TAlScore            minsc_;  // penalty ceiling for valid alignments
 	int                 nceil_;  // max # Ns allowed in ref portion of aln
+
+	SuffixTree          streeFw_;  // suffix tree for finding MEMs in fw read
+	SuffixTree          streeRc_;  // suffix tree for finding MEMs in rc read
+	EList<Triple<TRefOff, TRefOff, TRefOff> > mems_;  // list for holding MEMs
+	EList<bool>         cols2fixup_; // bitmask: columns to use fixup loop for
 
 	bool                sse8succ_;  // whether 8-bit worked
 	bool                sse16succ_; // whether 16-bit worked

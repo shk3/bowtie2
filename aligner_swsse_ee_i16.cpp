@@ -554,51 +554,53 @@ TAlScore SwAligner::alignGatherEE16(int& flag, bool debug) {
 		vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
 		vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
 		vf = _mm_max_epi16(vtmp, vf);
-		vtmp = _mm_cmpgt_epi16(vf, vtmp);
-		int cmp = _mm_movemask_epi8(vtmp);
 		
-		// If any element of vtmp is greater than H - gap-open...
-		j = 0;
-		while(cmp != 0x0000) {
-			// Store this vf
-			_mm_store_si128(pvFRight, vf);
-			pvFRight += ROWSTRIDE_2COL;
-			
-			// Update vh w/r/t new vf
-			vh = _mm_max_epi16(vh, vf);
-			
-			// Save vH values
-			_mm_store_si128(pvHRight, vh);
-			pvHRight += ROWSTRIDE_2COL;
-			
-			pvScore += 2;
-			
-			assert_lt(j, iter);
-			if(++j == iter) {
-				pvFRight -= colstride;
-				vtmp = _mm_load_si128(pvFRight);   // load next vf ASAP
-				pvHRight -= colstride;
-				vh = _mm_load_si128(pvHRight);     // load next vh ASAP
-				pvScore = d.profbuf_.ptr() + off + 1;
-				j = 0;
-				vf = _mm_slli_si128(vf, NBYTES_PER_WORD);
-				vf = _mm_or_si128(vf, vlolsw);
-			} else {
-				vtmp = _mm_load_si128(pvFRight);   // load next vf ASAP
-				vh = _mm_load_si128(pvHRight);     // load next vh ASAP
-			}
-			
-			// Update F with another gap extension
-			vf = _mm_subs_epi16(vf, rfgape);
-			vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
-			vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
-			vf = _mm_max_epi16(vtmp, vf);
+		if(cols2fixup_[i-rfi_]) {
 			vtmp = _mm_cmpgt_epi16(vf, vtmp);
-			cmp = _mm_movemask_epi8(vtmp);
-			nfixup++;
+			int cmp = _mm_movemask_epi8(vtmp);
+			
+			// If any element of vtmp is greater than H - gap-open...
+			j = 0;
+			while(cmp != 0x0000) {
+				// Store this vf
+				_mm_store_si128(pvFRight, vf);
+				pvFRight += ROWSTRIDE_2COL;
+				
+				// Update vh w/r/t new vf
+				vh = _mm_max_epi16(vh, vf);
+				
+				// Save vH values
+				_mm_store_si128(pvHRight, vh);
+				pvHRight += ROWSTRIDE_2COL;
+				
+				pvScore += 2;
+				
+				assert_lt(j, iter);
+				if(++j == iter) {
+					pvFRight -= colstride;
+					vtmp = _mm_load_si128(pvFRight);   // load next vf ASAP
+					pvHRight -= colstride;
+					vh = _mm_load_si128(pvHRight);     // load next vh ASAP
+					pvScore = d.profbuf_.ptr() + off + 1;
+					j = 0;
+					vf = _mm_slli_si128(vf, NBYTES_PER_WORD);
+					vf = _mm_or_si128(vf, vlolsw);
+				} else {
+					vtmp = _mm_load_si128(pvFRight);   // load next vf ASAP
+					vh = _mm_load_si128(pvHRight);     // load next vh ASAP
+				}
+				
+				// Update F with another gap extension
+				vf = _mm_subs_epi16(vf, rfgape);
+				vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
+				vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
+				vf = _mm_max_epi16(vtmp, vf);
+				vtmp = _mm_cmpgt_epi16(vf, vtmp);
+				cmp = _mm_movemask_epi8(vtmp);
+				nfixup++;
+			}
 		}
 
-		
 		// Check in the last row for the maximum so far
 		__m128i *vtmp = vbuf_r + 2 /* H */ + (d.lastIter_ * ROWSTRIDE_2COL);
 		// Note: we may not want to extract from the final row
@@ -1050,67 +1052,70 @@ TAlScore SwAligner::alignNucleotidesEnd2EndSseI16(int& flag, bool debug) {
 		vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
 		vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
 		vf = _mm_max_epi16(vtmp, vf);
-		vtmp = _mm_cmpgt_epi16(vf, vtmp);
-		int cmp = _mm_movemask_epi8(vtmp);
 		
-		// If any element of vtmp is greater than H - gap-open...
-		j = 0;
-		while(cmp != 0x0000) {
-			// Store this vf
-			_mm_store_si128(pvFStore, vf);
-			pvFStore += ROWSTRIDE;
-			
-			// Update vh w/r/t new vf
-			vh = _mm_max_epi16(vh, vf);
-			
-			// Save vH values
-			_mm_store_si128(pvHStore, vh);
-			pvHStore += ROWSTRIDE;
-			
-			// Update E in case it can be improved using our new vh
-#if 0
-#else
-			vh = _mm_subs_epi16(vh, rdgapo);
-			vh = _mm_adds_epi16(vh, *pvScore); // veto some read gap opens
-			vh = _mm_adds_epi16(vh, *pvScore); // veto some read gap opens
-			ve = _mm_max_epi16(ve, vh);
-			_mm_store_si128(pvEStore, ve);
-			pvEStore += ROWSTRIDE;
-#endif
-			pvScore += 2;
-			
-			assert_lt(j, iter);
-			if(++j == iter) {
-				pvFStore -= colstride;
-				vtmp = _mm_load_si128(pvFStore);   // load next vf ASAP
-				pvHStore -= colstride;
-				vh = _mm_load_si128(pvHStore);     // load next vh ASAP
-#if 0
-#else
-				pvEStore -= colstride;
-				ve = _mm_load_si128(pvEStore);     // load next ve ASAP
-#endif
-				pvScore = d.profbuf_.ptr() + off + 1;
-				j = 0;
-				vf = _mm_slli_si128(vf, NBYTES_PER_WORD);
-				vf = _mm_or_si128(vf, vlolsw);
-			} else {
-				vtmp = _mm_load_si128(pvFStore);   // load next vf ASAP
-				vh = _mm_load_si128(pvHStore);     // load next vh ASAP
-#if 0
-#else
-				ve = _mm_load_si128(pvEStore);     // load next vh ASAP
-#endif
-			}
-			
-			// Update F with another gap extension
-			vf = _mm_subs_epi16(vf, rfgape);
-			vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
-			vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
-			vf = _mm_max_epi16(vtmp, vf);
+		if(cols2fixup_[i-rfi_]) {
 			vtmp = _mm_cmpgt_epi16(vf, vtmp);
-			cmp = _mm_movemask_epi8(vtmp);
-			nfixup++;
+			int cmp = _mm_movemask_epi8(vtmp);
+			
+			// If any element of vtmp is greater than H - gap-open...
+			j = 0;
+			while(cmp != 0x0000) {
+				// Store this vf
+				_mm_store_si128(pvFStore, vf);
+				pvFStore += ROWSTRIDE;
+				
+				// Update vh w/r/t new vf
+				vh = _mm_max_epi16(vh, vf);
+				
+				// Save vH values
+				_mm_store_si128(pvHStore, vh);
+				pvHStore += ROWSTRIDE;
+				
+				// Update E in case it can be improved using our new vh
+#if 0
+#else
+				vh = _mm_subs_epi16(vh, rdgapo);
+				vh = _mm_adds_epi16(vh, *pvScore); // veto some read gap opens
+				vh = _mm_adds_epi16(vh, *pvScore); // veto some read gap opens
+				ve = _mm_max_epi16(ve, vh);
+				_mm_store_si128(pvEStore, ve);
+				pvEStore += ROWSTRIDE;
+#endif
+				pvScore += 2;
+				
+				assert_lt(j, iter);
+				if(++j == iter) {
+					pvFStore -= colstride;
+					vtmp = _mm_load_si128(pvFStore);   // load next vf ASAP
+					pvHStore -= colstride;
+					vh = _mm_load_si128(pvHStore);     // load next vh ASAP
+#if 0
+#else
+					pvEStore -= colstride;
+					ve = _mm_load_si128(pvEStore);     // load next ve ASAP
+#endif
+					pvScore = d.profbuf_.ptr() + off + 1;
+					j = 0;
+					vf = _mm_slli_si128(vf, NBYTES_PER_WORD);
+					vf = _mm_or_si128(vf, vlolsw);
+				} else {
+					vtmp = _mm_load_si128(pvFStore);   // load next vf ASAP
+					vh = _mm_load_si128(pvHStore);     // load next vh ASAP
+#if 0
+#else
+					ve = _mm_load_si128(pvEStore);     // load next vh ASAP
+#endif
+				}
+				
+				// Update F with another gap extension
+				vf = _mm_subs_epi16(vf, rfgape);
+				vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
+				vf = _mm_adds_epi16(vf, *pvScore); // veto some ref gap extensions
+				vf = _mm_max_epi16(vtmp, vf);
+				vtmp = _mm_cmpgt_epi16(vf, vtmp);
+				cmp = _mm_movemask_epi8(vtmp);
+				nfixup++;
+			}
 		}
 
 #ifndef NDEBUG

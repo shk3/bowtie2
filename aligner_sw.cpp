@@ -41,27 +41,34 @@ void SwAligner::initRead(
 	const Scoring& sc)       // scoring scheme
 {
 	assert_gt(rdf, rdi);
+	// calculate max # Ns allowed according to policy & read len
 	int nceil = sc.nCeil.f<int>((double)rdfw.length());
 	rdfw_    = &rdfw;      // read sequence
-	rdrc_    = &rdrc;      // read sequence
+	rdrc_    = &rdrc;      // read sequence rev-comped
 	qufw_    = &qufw;      // read qualities
-	qurc_    = &qurc;      // read qualities
+	qurc_    = &qurc;      // read qualities reversed
 	rdi_     = rdi;        // offset of first read char to align
 	rdf_     = rdf;        // offset of last read char to align
 	sc_      = &sc;        // scoring scheme
 	nceil_   = nceil;      // max # Ns allowed in ref portion of aln
 	readSse16_ = false;    // true -> sse16 from now on for this read
 	initedRead_ = true;
+	streeFw_.reset();
+	streeRc_.reset();
+	mems_.clear();
+	cols2fixup_.clear();
 #ifndef NO_SSE
 	sseU8fwBuilt_  = false;  // built fw query profile, 8-bit score
 	sseU8rcBuilt_  = false;  // built rc query profile, 8-bit score
 	sseI16fwBuilt_ = false;  // built fw query profile, 16-bit score
 	sseI16rcBuilt_ = false;  // built rc query profile, 16-bit score
 #endif
+	// Initialize log file where DP problems can be written
 	if(dpLog_ != NULL) {
 		if(!firstRead_) {
 			(*dpLog_) << '\n';
 		}
+		// Start new line with forward read and qualities
 		(*dpLog_) << rdfw.toZBuf() << '\t' << qufw.toZBuf();
 	}
 	firstRead_ = false;
@@ -101,6 +108,8 @@ void SwAligner::initRef(
 	rf_          = rf;       // reference sequence
 	rfi_         = rfi;      // offset of first reference char to align to
 	rff_         = rff;      // offset of last reference char to align to
+	cols2fixup_.resizeNoCopy(rff_-rfi_);
+	cols2fixup_.fill(true);
 	reflen_      = reflen;   // length of entire reference sequence
 	rect_        = &rect;    // DP rectangle
 	minsc_       = minsc;    // minimum score
@@ -131,14 +140,14 @@ void SwAligner::initRef(
 	// Record the reference sequence in the log
 	if(dpLog_ != NULL) {
 		(*dpLog_) << '\t';
-		(*dpLog_) << refidx_ << ',';
-		(*dpLog_) << reflen_ << ',';
-		(*dpLog_) << minsc_ << ',';
-		(*dpLog_) << (fw ? '+' : '-') << ',';
-		rect_->write(*dpLog_);
+		(*dpLog_) << refidx_ << ',';  // reference id
+		(*dpLog_) << reflen_ << ',';  // reference length
+		(*dpLog_) << minsc_ << ',';  // minimum score
+		(*dpLog_) << (fw ? '+' : '-') << ',';  // fw or rc read
+		rect_->write(*dpLog_);  // dp rectangle
 		(*dpLog_) << ',';
 		for(TRefOff i = rfi_; i < rff_; i++) {
-			(*dpLog_) << mask2dna[(int)rf[i]];
+			(*dpLog_) << mask2dna[(int)rf[i]];  // DNA string
 		}
 	}
 }
@@ -505,9 +514,35 @@ bool SwAligner::align(
 	btncand_.clear();
 	btncanddone_.clear();
 	btncanddoneSucc_ = btncanddoneFail_ = 0;
+	// Reset best score
 	best = std::numeric_limits<TAlScore>::min();
-	sse8succ_ = sse16succ_ = false;
-	int flag = 0;
+	sse8succ_ = false;  // 8-bit DP was successful?
+	sse16succ_ = false;  // 16-bit DP was successful?
+	int flag = 0;  // 0=success, -1=no score over threshold, -2=saturated
+	// TODO: Complexity filter?
+	// If suffix tree hasn't been built, build now
+	bool markMemColumns = true;
+	if(markMemColumns) {
+		if(fw_ && !streeFw_.inited()) {
+			streeFw_.init(*rd_);
+		} else if(!fw_ && !streeRc_.inited()) {
+			streeRc_.init(*rd_);
+		}
+		// Find MEMs between read and reference
+		if(fw_) {
+			streeFw_.mems(rf_ + rfi_, rff_ - rfi_, mems_, 3);
+		} else {
+			streeRc_.mems(rf_ + rfi_, rff_ - rfi_, mems_, 3);
+		}
+		// Search for MEMs near each other such that we would like to mark
+		// some columns as requiring fixup loop
+		for(size_t i = 0; i < mems_.size(); i++) {
+			for(size_t j = i+1; j < mems_.size(); j++) {
+				// chainable?
+				
+			}
+		}
+	}
 	size_t rdlen = rdf_ - rdi_;
 	bool checkpointed = rdlen >= cperMinlen_;
 	bool gathered = false; // Did gathering happen along with alignment?
