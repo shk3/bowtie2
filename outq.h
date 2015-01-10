@@ -56,6 +56,7 @@ public:
 		started_(RES_CAT),
 		finished_(RES_CAT),
 		reorder_(reorder),
+		nthreads_(nthreads),
 		threadSafe_(threadSafe),
 		protectCounters_(protectCounters),
         mutex_counters(),
@@ -119,6 +120,7 @@ protected:
 	EList<bool>     started_;
 	EList<bool>     finished_;
 	bool            reorder_;
+	size_t          nthreads_;
 	bool            threadSafe_;
 	bool            protectCounters_;
 	MUTEX_T         mutex_counters;

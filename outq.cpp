@@ -26,7 +26,6 @@
 void OutputQueue::beginRead(TReadId rdid, size_t threadId) {
 	if(reorder_) {
 		ThreadSafe t(&mutex_main, threadSafe_);
-		nstarted_++;
 		assert_geq(rdid, cur_);
 		assert_eq(lines_.size(), finished_.size());
 		assert_eq(lines_.size(), started_.size());
@@ -42,7 +41,8 @@ void OutputQueue::beginRead(TReadId rdid, size_t threadId) {
 		}
 		started_[rdid - cur_] = true;
 		finished_[rdid - cur_] = false;
-	} else {
+	}
+	{
 		ThreadSafe t(&mutex_counters, threadSafe_ && protectCounters_);
 		nstarted_++;
 	}
@@ -61,24 +61,28 @@ void OutputQueue::finishRead(const BTString& rec, TReadId rdid, size_t threadId)
 		assert(started_[rdid - cur_]);
 		assert(!finished_[rdid - cur_]);
 		lines_[rdid - cur_] = rec;
-		nfinished_++;
 		finished_[rdid - cur_] = true;
-		flush(false, false); // don't force; already have lock
+		// flush now or later
+		flush(false, false);
 	} else {
-		{
+		if(threadSafe_) {
 			ThreadSafe t(&mutex_main, threadSafe_);
 			lines_.push_back(rec);
 			started_.push_back(true);
 			finished_.push_back(true);
-			if(lines_.size() >= NFLUSH_THRESH) {
+			// flush now or later
+			if(lines_.size() >= NFLUSH_THRESH * nthreads_) {
 				flush(true, false);
 			}
-		}
-		{
-			ThreadSafe t(&mutex_counters, threadSafe_ && protectCounters_);
-			nfinished_++;
+		} else {
+			// flush immediately; no need to synchronize
+			obuf_.writeString(rec);
 			nflushed_++;
 		}
+	}
+	{
+		ThreadSafe t(&mutex_counters, threadSafe_ && protectCounters_);
+		nfinished_++;
 	}
 }
 
@@ -94,7 +98,7 @@ void OutputQueue::flush(bool force, bool getLock) {
 	}
 	// Waiting until we have several in a row to flush cuts down on copies
 	// (but requires more buffering)
-	if(force || nflush >= NFLUSH_THRESH) {
+	if(force || nflush >= NFLUSH_THRESH * nthreads_) {
 		for(size_t i = 0; i < nflush; i++) {
 			assert(started_[i]);
 			assert(finished_[i]);
