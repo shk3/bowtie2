@@ -67,8 +67,12 @@ void OutputQueue::finishRead(const BTString& rec, TReadId rdid, size_t threadId)
 	} else {
 		{
 			ThreadSafe t(&mutex_main, threadSafe_);
-			// obuf_ is the OutFileBuf for the output file
-			obuf_.writeString(rec);
+			lines_.push_back(rec);
+			started_.push_back(true);
+			finished_.push_back(true);
+			if(lines_.size() >= NFLUSH_THRESH) {
+				flush(true, false);
+			}
 		}
 		{
 			ThreadSafe t(&mutex_counters, threadSafe_ && protectCounters_);
