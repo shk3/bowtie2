@@ -96,7 +96,7 @@ protected:
 		 */
 		size_t numChildren() const {
 			size_t nc = 0;
-			for(size_t i = 0; i < 5; i++) {
+			for(size_t i = 0; i <= 5; i++) {
 				if(out_[i] != INVALID_NODE) {
 					nc++;
 				}
@@ -237,7 +237,9 @@ public:
 	 */
 	void reset() {
 		nodes_.clear();
+		suftmp_.clear();
 		t_ = NULL;
+		tlen_ = 0;
 		rootid_ = bottomid_ = INVALID_NODE;
 	}
 	
@@ -325,7 +327,7 @@ protected:
 		TNodeId curid = 0; // start at root
 		while(i < d) {
 			TChar c = t_[off + i]+1; // next character
-			assert_range(0, 4, c);
+			assert_range(0, 5, c);
 			if(nodes_[curid].out_[c] == INVALID_NODE) { // child with that character?
 				return false; // no such child!
 			}

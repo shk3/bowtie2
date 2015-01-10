@@ -140,6 +140,8 @@ enum {
 	ARG_CP_MIN,                 // --cp-min
 	ARG_CP_IVAL,                // --cp-ival
 	ARG_TRI,                    // --tri
+	ARG_FIXUP_DISABLE,          // --fixup-disable
+	ARG_FIXUP_FILTER,           // --fixup-filter
 	ARG_LOCAL_SEED_CACHE_SZ,    // --local-seed-cache-sz
 	ARG_CURRENT_SEED_CACHE_SZ,  // --seed-cache-sz
 	ARG_SAM_NO_UNAL,            // --no-unal

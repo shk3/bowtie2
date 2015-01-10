@@ -269,6 +269,8 @@ public:
 		size_t cminlen,        // minimum length for using checkpointing scheme
 		size_t cpow2,          // interval b/t checkpointed diags; 1 << this
 		bool doTri,            // triangular mini-fills?
+		bool fixupFilter,      // use filter s.t. only some columns get fixup?
+		bool fixupDisable,     // disable fixup loop entirely?
 		bool extend);          // true iff this is a seed extension
 
 	/**
@@ -296,6 +298,8 @@ public:
 		size_t cminlen,        // minimum length for using checkpointing scheme
 		size_t cpow2,          // interval b/t checkpointed diags; 1 << this
 		bool doTri,            // triangular mini-fills?
+		bool fixupFilter,      // use filter s.t. only some columns get fixup?
+		bool fixupDisable,     // disable fixup loop entirely?
 		bool extend,           // true iff this is a seed extension
 		size_t  upto,          // count the number of Ns up to this offset
 		size_t& nsUpto);       // output: the number of Ns up to 'upto'
@@ -608,6 +612,7 @@ protected:
 	SuffixTree          streeRc_;  // suffix tree for finding MEMs in rc read
 	EList<Triple<TRefOff, TRefOff, TRefOff> > mems_;  // list for holding MEMs
 	EList<bool>         cols2fixup_; // bitmask: columns to use fixup loop for
+	bool                fixupFilter_; // filter some columns based on MEMs
 
 	bool                sse8succ_;  // whether 8-bit worked
 	bool                sse16succ_; // whether 16-bit worked

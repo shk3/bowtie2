@@ -779,6 +779,8 @@ int SwDriver::extendSeeds(
 	size_t cminlen,              // use checkpointer if read longer than this
 	size_t cpow2,                // interval between diagonals to checkpoint
 	bool doTri,                  // triangular mini-fills?
+	bool fixupFilter,            // use filter s.t. only some columns get fixup?
+	bool fixupDisable,           // disable fixup loop entirely?
 	int tighten,                 // -M score tightening mode
 	AlignmentCacheIface& ca,     // alignment cache for seed hits
 	RandomSource& rnd,           // pseudo-random source
@@ -1122,6 +1124,8 @@ int SwDriver::extendSeeds(
 						cminlen,   // minimum length for using checkpointing scheme
 						cpow2,     // interval b/t checkpointed diags; 1 << this
 						doTri,     // triangular mini-fills?
+						fixupFilter, // use filter s.t. only some columns get fixup?
+						fixupDisable,// disable fixup loop entirely?
 						true,      // this is a seed extension - not finding a mate
 						nwindow,
 						nsInLeftShift);
@@ -1416,6 +1420,8 @@ int SwDriver::extendSeedsPaired(
 	size_t cminlen,              // use checkpointer if read longer than this
 	size_t cpow2,                // interval between diagonals to checkpoint
 	bool doTri,                  // triangular mini-fills?
+	bool fixupFilter,            // use filter s.t. only some columns get fixup?
+	bool fixupDisable,           // disable fixup loop entirely?
 	int tighten,                 // -M score tightening mode
 	AlignmentCacheIface& ca,     // alignment cache for seed hits
 	RandomSource& rnd,           // pseudo-random source
@@ -1814,6 +1820,8 @@ int SwDriver::extendSeedsPaired(
 						cminlen,   // minimum length for using checkpointing scheme
 						cpow2,     // interval b/t checkpointed diags; 1 << this
 						doTri,     // triangular mini-fills?
+						fixupFilter, // use filter s.t. only some columns get fixup?
+						fixupDisable,// disable fixup loop entirely?
 						true,      // this is a seed extension - not finding a mate
 						nwindow,
 						nsInLeftShift);
@@ -2048,6 +2056,8 @@ int SwDriver::extendSeedsPaired(
 								cminlen,   // minimum length for using checkpointing scheme
 								cpow2,     // interval b/t checkpointed diags; 1 << this
 								doTri,     // triangular mini-fills?
+								fixupFilter, // use filter s.t. only some columns get fixup?
+								fixupDisable,// disable fixup loop entirely?
 								false,     // this is finding a mate - not seed ext
 								0,         // nwindow?
 								onsInLeftShift);

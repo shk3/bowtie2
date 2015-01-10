@@ -17,6 +17,7 @@
  * along with Bowtie 2.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mask.h"
 #include "stree.h"
 
 typedef SuffixTree::TOff TOff;
@@ -27,7 +28,7 @@ const TNodeId SuffixTree::INVALID_NODE = std::numeric_limits<TNodeId>::max();
  * Check for internal consistency.
  */
 bool SuffixTree::repOk() const {
-	size_t nleaves = 0;
+	TOff nleaves = 0;
 	for(size_t i = 0; i < nodes_.size(); i++) {
 		if(nodes_[i].isLeaf()) {
 			nleaves++;
@@ -47,7 +48,8 @@ bool SuffixTree::repOk() const {
 		TChar c = -1;
 		TOff depth = 0;
 		if(i < tlen_) {
-			fromRoot(i, tlen_ - i, nodeid, c, depth);
+			ASSERT_ONLY(bool ret = ) fromRoot(i, tlen_ - i, nodeid, c, depth);
+			assert(ret);
 		}
 		// This must be an internal node with a child
 		if(depth == 0) {
@@ -115,7 +117,8 @@ void SuffixTree::ukkonen() {
 					lastn = nodeid;
 					lastdepth = 0;
 					lastoff = i+1;
-					nodes_[nodeid].out_[c] = lastleaf = newNode(i+1, tlen-i-1, j);
+					lastleaf = newNode(i+1, tlen-i-1, j);
+					nodes_[nodeid].out_[c] = lastleaf;
 					nodes_[lastleaf].parent_ = nodeid;
 				} else {
 					break; // Rule 3: Already there
@@ -129,7 +132,8 @@ void SuffixTree::ukkonen() {
 					lastdepth = 0;
 					lastoff = i+1;
 					// mid is a new internal node, in need of a suffix link
-					nodes_[midid].out_[c] = lastleaf = newNode(i+1, tlen-i-1, j);
+					lastleaf = newNode(i+1, tlen-i-1, j);
+					nodes_[midid].out_[c] = lastleaf;
 					nodes_[lastleaf].parent_ = midid;
 					if(lastInternal != std::numeric_limits<TNodeId>::max()) {
 						assert(!nodes_[lastInternal].hasSuffixLink());
@@ -161,7 +165,7 @@ void SuffixTree::mems(
 	TOff below = 0, depth = 0;
 	suftmp_.clear();
 	for(TOff i = 0; i < plen; i++) {
-		int cp = p[i] + 1;
+		int cp = firsts5[(int)p[i]] + 1;
 		assert_range(1, 5, cp);
 		// How do we know when we've reached the end of a MEM?  Basically,
 		// whenever we set of suffixes below the current pointer changes.

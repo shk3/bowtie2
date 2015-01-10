@@ -218,6 +218,8 @@ static bool enable8;          // use 8-bit SSE where possible?
 static size_t cminlen;        // longer reads use checkpointing
 static size_t cpow2;          // checkpoint interval log2
 static bool doTri;            // do triangular mini-fills?
+static bool fixupFilter;      // use filter s.t. only some columns get fixup?
+static bool fixupDisable;     // disable fixup loop entirely?
 static string defaultPreset;  // default preset; applied immediately
 static bool ignoreQuals;      // all mms incur same penalty, regardless of qual
 static string wrapper;        // type of wrapper script, so we can print correct usage
@@ -406,6 +408,8 @@ static void resetOptions() {
 	cminlen            = 2000;  // longer reads use checkpointing
 	cpow2              = 4;     // checkpoint interval log2
 	doTri              = false; // do triangular mini-fills?
+	fixupFilter        = false; // use filter s.t. only some columns get fixup?
+	fixupDisable       = false; // disable fixup loop entirely?
 	defaultPreset      = "sensitive%LOCAL%"; // default preset; applied immediately
 	extra_opts.clear();
 	extra_opts_cur = 0;
@@ -613,6 +617,8 @@ static struct option long_options[] = {
 	{(char*)"desc-fmops",       required_argument, 0,        ARG_DESC_FMOPS},
 	{(char*)"log-dp",           required_argument, 0,        ARG_LOG_DP},
 	{(char*)"log-dp-opp",       required_argument, 0,        ARG_LOG_DP_OPP},
+	{(char*)"fixup-disable",    no_argument,       0,        ARG_FIXUP_DISABLE},
+	{(char*)"fixup-filter",     no_argument,       0,        ARG_FIXUP_FILTER},
 	{(char*)0, 0, 0, 0} // terminator
 };
 
@@ -1179,6 +1185,12 @@ static void parseOption(int next_option, const char *arg) {
 			break;
 		case ARG_TRI:
 			doTri = true;
+			break;
+		case ARG_FIXUP_DISABLE:
+			fixupDisable = true;
+			break;
+		case ARG_FIXUP_FILTER:
+			fixupFilter = true;
 			break;
 		case ARG_READ_PASSTHRU: {
 			sam_print_xr = true;
@@ -3224,6 +3236,8 @@ static void multiseedSearchWorker(void *vp) {
 									cminlen,        // checkpoint if read is longer
 									cpow2,          // checkpointer interval, log2
 									doTri,          // triangular mini-fills?
+									fixupFilter,    // use filter s.t. only some columns get fixup?
+									fixupDisable,   // disable fixup loop entirely?
 									tighten,        // -M score tightening mode
 									ca,             // seed alignment cache
 									rnd,            // pseudo-random source
@@ -3266,6 +3280,8 @@ static void multiseedSearchWorker(void *vp) {
 									cminlen,        // checkpoint if read is longer
 									cpow2,          // checkpointer interval, log2
 									doTri,          // triangular mini-fills
+									fixupFilter,    // use filter s.t. only some columns get fixup?
+									fixupDisable,   // disable fixup loop entirely?
 									tighten,        // -M score tightening mode
 									ca,             // seed alignment cache
 									rnd,            // pseudo-random source
@@ -3405,6 +3421,8 @@ static void multiseedSearchWorker(void *vp) {
 									cminlen,        // checkpoint if read is longer
 									cpow2,          // checkpointer interval, log2
 									doTri,          // triangular mini-fills?
+									fixupFilter,    // use filter s.t. only some columns get fixup?
+									fixupDisable,   // disable fixup loop entirely?
 									tighten,        // -M score tightening mode
 									ca,             // seed alignment cache
 									rnd,            // pseudo-random source
@@ -3447,6 +3465,8 @@ static void multiseedSearchWorker(void *vp) {
 									cminlen,        // checkpoint if read is longer
 									cpow2,          // checkpointer interval, log2
 									doTri,          // triangular mini-fills?
+									fixupFilter,    // use filter s.t. only some columns get fixup?
+									fixupDisable,   // disable fixup loop entirely?
 									tighten,        // -M score tightening mode
 									ca,             // seed alignment cache
 									rnd,            // pseudo-random source
@@ -3666,6 +3686,8 @@ static void multiseedSearchWorker(void *vp) {
 										cminlen,        // checkpoint if read is longer
 										cpow2,          // checkpointer interval, log2
 										doTri,          // triangular mini-fills?
+										fixupFilter,    // use filter s.t. only some columns get fixup?
+										fixupDisable,   // disable fixup loop entirely?
 										tighten,        // -M score tightening mode
 										ca,             // seed alignment cache
 										rnd,            // pseudo-random source
@@ -3708,6 +3730,8 @@ static void multiseedSearchWorker(void *vp) {
 										cminlen,        // checkpoint if read is longer
 										cpow2,          // checkpointer interval, log2
 										doTri,          // triangular mini-fills?
+										fixupFilter,    // use filter s.t. only some columns get fixup?
+										fixupDisable,   // disable fixup loop entirely?
 										tighten,        // -M score tightening mode
 										ca,             // seed alignment cache
 										rnd,            // pseudo-random source

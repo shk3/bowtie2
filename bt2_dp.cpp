@@ -737,6 +737,8 @@ int main(int argc, const char **argv) {
 							cminlen,
 							cpow2,
 							doTri,
+							fixupFilter,
+							fixupDisable,
 							extend);
 						// Now fill the dynamic programming matrix and return true iff
 						// there is at least one valid alignment

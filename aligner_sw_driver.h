@@ -345,6 +345,8 @@ public:
 		size_t cminlen,              // use checkpointer if read longer than this
 		size_t cpow2,                // interval between diagonals to checkpoint
 		bool doTri,                  // triangular mini-fills
+		bool fixupFilter,            // use filter s.t. only some columns get fixup?
+		bool fixupDisable,           // disable fixup loop entirely?
 		int tighten,                 // -M score tightening mode
 		AlignmentCacheIface& ca,     // alignment cache for seed hits
 		RandomSource& rnd,           // pseudo-random source
@@ -402,6 +404,8 @@ public:
 		size_t cminlen,              // use checkpointer if read longer than this
 		size_t cpow2,                // interval between diagonals to checkpoint
 		bool doTri,                  // triangular mini-fills
+		bool fixupFilter,            // use filter s.t. only some columns get fixup?
+		bool fixupDisable,           // disable fixup loop entirely?
 		int tighten,                 // -M score tightening mode
 		AlignmentCacheIface& cs,     // alignment cache for seed hits
 		RandomSource& rnd,           // pseudo-random source

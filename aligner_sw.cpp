@@ -91,6 +91,8 @@ void SwAligner::initRef(
 	size_t cminlen,        // minimum length for using checkpointing scheme
 	size_t cpow2,          // interval b/t checkpointed diags; 1 << this
 	bool doTri,            // triangular mini-fills?
+	bool fixupFilter,      // use filter s.t. only some columns get fixup?
+	bool fixupDisable,     // disable fixup loop entirely?
 	bool extend)           // is this a seed extension?
 {
 	size_t readGaps = sc.maxReadGaps(minsc, rdfw_->length());
@@ -109,7 +111,8 @@ void SwAligner::initRef(
 	rfi_         = rfi;      // offset of first reference char to align to
 	rff_         = rff;      // offset of last reference char to align to
 	cols2fixup_.resizeNoCopy(rff_-rfi_);
-	cols2fixup_.fill(true);
+	cols2fixup_.fill(!fixupDisable);
+	fixupFilter_ = fixupFilter;
 	reflen_      = reflen;   // length of entire reference sequence
 	rect_        = &rect;    // DP rectangle
 	minsc_       = minsc;    // minimum score
@@ -173,6 +176,8 @@ void SwAligner::initRef(
 	size_t cminlen,        // minimum length for using checkpointing scheme
 	size_t cpow2,          // interval b/t checkpointed diags; 1 << this
 	bool doTri,            // triangular mini-fills?
+	bool fixupFilter,      // use filter s.t. only some columns get fixup?
+	bool fixupDisable,     // disable fixup loop entirely?
 	bool extend,           // true iff this is a seed extension
 	size_t  upto,          // count the number of Ns up to this offset
 	size_t& nsUpto)        // output: the number of Ns up to 'upto'
@@ -276,6 +281,8 @@ void SwAligner::initRef(
 		cminlen,     // minimum length for using checkpointing scheme
 		cpow2,       // interval b/t checkpointed diags; 1 << this
 		doTri,       // triangular mini-fills?
+		fixupFilter, // use filter s.t. only some columns get fixup?
+		fixupDisable,// disable fixup loop entirely?
 		extend);     // true iff this is a seed extension
 }
 
@@ -521,14 +528,14 @@ bool SwAligner::align(
 	int flag = 0;  // 0=success, -1=no score over threshold, -2=saturated
 	// TODO: Complexity filter?
 	// If suffix tree hasn't been built, build now
-	bool markMemColumns = true;
-	if(markMemColumns) {
+	if(fixupFilter_) {
 		if(fw_ && !streeFw_.inited()) {
 			streeFw_.init(*rd_);
 		} else if(!fw_ && !streeRc_.inited()) {
 			streeRc_.init(*rd_);
 		}
-		// Find MEMs between read and reference
+		// Find MEMs between read and reference.
+		// TODO: Reference is masked currently.
 		if(fw_) {
 			streeFw_.mems(rf_ + rfi_, rff_ - rfi_, mems_, 3);
 		} else {
