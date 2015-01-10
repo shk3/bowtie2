@@ -86,9 +86,6 @@ void OutputQueue::finishRead(const BTString& rec, TReadId rdid, size_t threadId)
  * Write already-finished lines starting from cur_.
  */
 void OutputQueue::flush(bool force, bool getLock) {
-	if(!reorder_) {
-		return;
-	}
 	ThreadSafe t(&mutex_main, getLock && threadSafe_);
 	size_t nflush = 0;
 	while(nflush < finished_.size() && finished_[nflush]) {
