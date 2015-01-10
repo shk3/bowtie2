@@ -24,9 +24,9 @@
  * the read with the given id.
  */
 void OutputQueue::beginRead(TReadId rdid, size_t threadId) {
-	ThreadSafe t(&mutex_m, threadSafe_);
-	nstarted_++;
 	if(reorder_) {
+		ThreadSafe t(&mutex_main, threadSafe_);
+		nstarted_++;
 		assert_geq(rdid, cur_);
 		assert_eq(lines_.size(), finished_.size());
 		assert_eq(lines_.size(), started_.size());
@@ -42,6 +42,9 @@ void OutputQueue::beginRead(TReadId rdid, size_t threadId) {
 		}
 		started_[rdid - cur_] = true;
 		finished_[rdid - cur_] = false;
+	} else {
+		ThreadSafe t(&mutex_counters, threadSafe_ && protectCounters_);
+		nstarted_++;
 	}
 }
 
@@ -49,8 +52,8 @@ void OutputQueue::beginRead(TReadId rdid, size_t threadId) {
  * Writer is finished writing to 
  */
 void OutputQueue::finishRead(const BTString& rec, TReadId rdid, size_t threadId) {
-	ThreadSafe t(&mutex_m, threadSafe_);
 	if(reorder_) {
+		ThreadSafe t(&mutex_main, threadSafe_);
 		assert_geq(rdid, cur_);
 		assert_eq(lines_.size(), finished_.size());
 		assert_eq(lines_.size(), started_.size());
@@ -62,10 +65,16 @@ void OutputQueue::finishRead(const BTString& rec, TReadId rdid, size_t threadId)
 		finished_[rdid - cur_] = true;
 		flush(false, false); // don't force; already have lock
 	} else {
-		// obuf_ is the OutFileBuf for the output file
-		obuf_.writeString(rec);
-		nfinished_++;
-		nflushed_++;
+		{
+			ThreadSafe t(&mutex_main, threadSafe_);
+			// obuf_ is the OutFileBuf for the output file
+			obuf_.writeString(rec);
+		}
+		{
+			ThreadSafe t(&mutex_counters, threadSafe_ && protectCounters_);
+			nfinished_++;
+			nflushed_++;
+		}
 	}
 }
 
@@ -76,7 +85,7 @@ void OutputQueue::flush(bool force, bool getLock) {
 	if(!reorder_) {
 		return;
 	}
-	ThreadSafe t(&mutex_m, getLock && threadSafe_);
+	ThreadSafe t(&mutex_main, getLock && threadSafe_);
 	size_t nflush = 0;
 	while(nflush < finished_.size() && finished_[nflush]) {
 		assert(started_[nflush]);

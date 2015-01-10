@@ -45,7 +45,8 @@ public:
 		bool reorder,
 		size_t nthreads,
 		bool threadSafe,
-		TReadId rdid = 0) :
+		TReadId rdid = 0,
+		bool protectCounters = false) :
 		obuf_(obuf),
 		cur_(rdid),
 		nstarted_(0),
@@ -56,7 +57,9 @@ public:
 		finished_(RES_CAT),
 		reorder_(reorder),
 		threadSafe_(threadSafe),
-        mutex_m()
+		protectCounters_(protectCounters),
+        mutex_counters(),
+		mutex_main()
 	{
 		assert(nthreads <= 1 || threadSafe);
 	}
@@ -117,7 +120,9 @@ protected:
 	EList<bool>     finished_;
 	bool            reorder_;
 	bool            threadSafe_;
-	MUTEX_T         mutex_m;
+	bool            protectCounters_;
+	MUTEX_T         mutex_counters;
+	MUTEX_T         mutex_main;
 };
 
 class OutputQueueMark {
